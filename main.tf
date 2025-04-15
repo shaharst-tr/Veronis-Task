@@ -27,14 +27,13 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv"
+    key_vault       = "${local.name_prefix}-auto-kv"
     cosmos_account  = "${local.name_prefix}-cosmos"
     function_app    = "${local.name_prefix}-func"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
     app_insights    = "${local.name_prefix}-insights"
     app_plan        = "${local.name_prefix}-plan"
     logs_workspace  = "${local.name_prefix}-logs"
-    user_identity   = "${local.name_prefix}-identity"
   }
   
   # Database configuration
@@ -51,12 +50,15 @@ locals {
     terraform   = "true"
   })
   
-  # Function app settings
+  # Function app settings - updated to use the correct secret names
   function_app_settings = {
-    COSMOS_DATABASE   = local.cosmos_config.database_name
-    COSMOS_CONTAINER  = local.cosmos_config.container_name
+    COSMOS_DATABASE   = "@Microsoft.KeyVault(SecretUri=${module.key_vault.key_vault_uri}secrets/CosmosDatabase/)"
+    COSMOS_CONTAINER  = "@Microsoft.KeyVault(SecretUri=${module.key_vault.key_vault_uri}secrets/CosmosContainer/)"
     COSMOS_ENDPOINT   = "@Microsoft.KeyVault(SecretUri=${module.key_vault.key_vault_uri}secrets/cosmos-endpoint/)"
     COSMOS_KEY        = "@Microsoft.KeyVault(SecretUri=${module.key_vault.key_vault_uri}secrets/cosmos-key/)"
+    BLOB_STORAGE_CONN = "@Microsoft.KeyVault(SecretUri=${module.key_vault.key_vault_uri}secrets/BlobStorageConnStr/)"
+    BLOB_CONTAINER    = "@Microsoft.KeyVault(SecretUri=${module.key_vault.key_vault_uri}secrets/BlobContainerName/)"
+    KEY_VAULT_URL     = module.key_vault.key_vault_uri
   }
 }
 
@@ -65,14 +67,6 @@ resource "azurerm_resource_group" "rg" {
   name     = local.names.resource_group
   location = var.location
   tags     = local.common_tags
-}
-
-# Create user-assigned managed identity
-resource "azurerm_user_assigned_identity" "api_identity" {
-  name                = local.names.user_identity
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.location
-  tags                = local.common_tags
 }
 
 # Call the Key Vault module
@@ -112,6 +106,7 @@ module "cosmos_db" {
   ]
 }
 
+# Cosmos DB secrets
 resource "azurerm_key_vault_secret" "cosmos_endpoint" {
   name         = "cosmos-endpoint"
   value        = module.cosmos_db.cosmos_db_endpoint
@@ -134,36 +129,29 @@ resource "azurerm_key_vault_secret" "cosmos_key" {
   ]
 }
 
-# module "function_app" {
-#   source = "./modules/function-app"
+resource "azurerm_key_vault_secret" "cosmos_database" {
+  name         = "CosmosDatabase"
+  value        = module.cosmos_db.database_name
+  key_vault_id = module.key_vault.key_vault_id
   
-#   resource_group_name   = azurerm_resource_group.rg.name
-#   location              = var.location
-#   function_app_name     = "${var.project_name}-${var.environment}-func"
-#   storage_account_name  = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
-#   app_service_plan_name = "${var.project_name}-${var.environment}-plan"
-  
-#   tags = local.common_tags
-# }
+  depends_on = [
+    module.key_vault,
+    module.cosmos_db
+  ]
+}
 
-# # Add Function App's identity to Key Vault access policies (if needed)
-# resource "azurerm_key_vault_access_policy" "function_access_policy" {
-#   key_vault_id = module.key_vault.key_vault_id
-#   tenant_id    = var.tenant_id
-#   object_id    = module.function_app.function_app_principal_id
+resource "azurerm_key_vault_secret" "cosmos_container" {
+  name         = "CosmosContainer"
+  value        = module.cosmos_db.container_name
+  key_vault_id = module.key_vault.key_vault_id
   
-#   secret_permissions = [
-#     "Get",
-#     "List"
-#   ]
-  
-#   depends_on = [
-#     module.key_vault,
-#     module.function_app
-#   ]
-# }
+  depends_on = [
+    module.key_vault,
+    module.cosmos_db
+  ]
+}
 
-# Call the Function App module (with user-assigned identity)
+# Call the Function App module (with system-assigned identity)
 module "function_app" {
   source = "./modules/function-app"
   
@@ -173,10 +161,9 @@ module "function_app" {
   storage_account_name  = local.names.storage_account
   app_insights_name     = local.names.app_insights
   app_service_plan_name = local.names.app_plan
-  
-  # User-assigned identity configuration
-  identity_type         = "UserAssigned"
-  identity_ids          = [azurerm_user_assigned_identity.api_identity.id]
+
+  # Changed to system-assigned identity
+  identity_type         = "SystemAssigned"
   
   # App settings - reference secrets from Key Vault
   additional_app_settings = local.function_app_settings
@@ -185,16 +172,15 @@ module "function_app" {
   
   depends_on = [
     module.key_vault,
-    module.cosmos_db,
-    azurerm_user_assigned_identity.api_identity
+    module.cosmos_db
   ]
 }
 
-# Add Function App's identity to Key Vault access policies
+# Add Function App's identity to Key Vault access policies (updated for system-assigned identity)
 resource "azurerm_key_vault_access_policy" "function_access_policy" {
   key_vault_id = module.key_vault.key_vault_id
   tenant_id    = var.tenant_id
-  object_id    = azurerm_user_assigned_identity.api_identity.principal_id
+  object_id    = module.function_app.function_app_principal_id
   
   secret_permissions = [
     "Get",
@@ -203,21 +189,55 @@ resource "azurerm_key_vault_access_policy" "function_access_policy" {
   
   depends_on = [
     module.key_vault,
-    azurerm_user_assigned_identity.api_identity
+    module.function_app
   ]
 }
 
-# Add role assignment for Cosmos DB data access
+# Create a blob container in the function app's storage account
+resource "azurerm_storage_container" "function_container" {
+  name                  = "function-data"
+  storage_account_name  = module.function_app.storage_account_name
+  container_access_type = "private"
+  
+  depends_on = [
+    module.function_app
+  ]
+}
+
+# Blob storage secrets
+resource "azurerm_key_vault_secret" "blob_storage_conn_str" {
+  name         = "BlobStorageConnStr"
+  value        = module.function_app.storage_account_connection_string
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [
+    module.key_vault,
+    module.function_app
+  ]
+}
+
+resource "azurerm_key_vault_secret" "blob_container_name" {
+  name         = "BlobContainerName"
+  value        = azurerm_storage_container.function_container.name
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [
+    module.key_vault,
+    azurerm_storage_container.function_container
+  ]
+}
+
+# Add role assignment for Cosmos DB data access (updated for system-assigned identity)
 resource "azurerm_cosmosdb_sql_role_assignment" "function_cosmos_data_contributor" {
   resource_group_name = azurerm_resource_group.rg.name
   account_name        = module.cosmos_db.cosmos_db_name
   role_definition_id  = "${module.cosmos_db.cosmos_db_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002" # Built-in Data Contributor role
-  principal_id        = azurerm_user_assigned_identity.api_identity.principal_id
+  principal_id        = module.function_app.function_app_principal_id
   scope               = module.cosmos_db.cosmos_db_id
   
   depends_on = [
     module.cosmos_db,
-    azurerm_user_assigned_identity.api_identity
+    module.function_app
   ]
 }
 
@@ -232,27 +252,18 @@ resource "azurerm_log_analytics_workspace" "logs" {
   tags = local.common_tags
 }
 
-# Diagnostic settings just for Function App (not for Key Vault)
+# Diagnostic settings just for Function App
 resource "azurerm_monitor_diagnostic_setting" "function_logs" {
   name                       = "function-diagnostic-logs"
   target_resource_id         = module.function_app.function_app_id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
   
-  log {
+  enabled_log {
     category = "FunctionAppLogs"
-    enabled  = true
-    
-    retention_policy {
-      enabled = true
-    }
   }
   
   metric {
     category = "AllMetrics"
     enabled  = true
-    
-    retention_policy {
-      enabled = true
-    }
   }
 }

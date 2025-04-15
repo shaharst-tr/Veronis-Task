@@ -36,3 +36,8 @@ output "app_insights_connection_string" {
   value       = azurerm_application_insights.func_insights.connection_string
   sensitive   = true
 }
+output "storage_account_connection_string" {
+  description = "The connection string for the Storage Account"
+  value       = azurerm_storage_account.func_storage.primary_connection_string
+  sensitive   = true
+}

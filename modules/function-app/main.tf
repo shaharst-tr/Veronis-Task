@@ -61,7 +61,7 @@ resource "azurerm_service_plan" "func_plan" {
   tags = var.tags
 }
 
-# Function App - configured for public access with user-assigned identity
+# Function App - configured with system-assigned identity
 resource "azurerm_linux_function_app" "function_app" {
   name                       = var.function_app_name
   resource_group_name        = var.resource_group_name
@@ -109,4 +109,13 @@ resource "azurerm_linux_function_app" "function_app" {
   }
   
   tags = var.tags
+}
+
+# Storage account role assignment - now using system-assigned identity
+resource "azurerm_role_assignment" "function_to_storage" {
+  scope                = azurerm_storage_account.func_storage.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azurerm_linux_function_app.function_app.identity[0].principal_id
+
+  depends_on = [azurerm_linux_function_app.function_app, azurerm_storage_account.func_storage]
 }

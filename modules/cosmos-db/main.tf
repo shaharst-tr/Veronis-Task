@@ -49,7 +49,7 @@ resource "azurerm_cosmosdb_sql_container" "container" {
   resource_group_name = var.resource_group_name
   account_name        = azurerm_cosmosdb_account.db.name
   database_name       = azurerm_cosmosdb_sql_database.db.name
-  partition_key_path  = var.partition_key_path
+  partition_key_paths  = [var.partition_key_path]
   
   # Add optional indexing policy if specified
   dynamic "indexing_policy" {
@@ -73,18 +73,3 @@ resource "azurerm_cosmosdb_sql_container" "container" {
     }
   }
 }
-
-# # Store Cosmos DB connection details in Key Vault if a key vault ID is provided
-# resource "azurerm_key_vault_secret" "cosmos_endpoint" {
-#   count        = var.key_vault_id != null ? 1 : 0
-#   name         = local.secret_names.endpoint
-#   value        = azurerm_cosmosdb_account.db.endpoint
-#   key_vault_id = var.key_vault_id
-# }
-
-# resource "azurerm_key_vault_secret" "cosmos_key" {
-#   count        = var.key_vault_id != null ? 1 : 0
-#   name         = local.secret_names.key
-#   value        = azurerm_cosmosdb_account.db.primary_key
-#   key_vault_id = var.key_vault_id
-# }
