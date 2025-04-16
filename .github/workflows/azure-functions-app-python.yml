@@ -27,19 +27,6 @@ jobs:
         with:
           terraform_version: "1.5.0"
 
-      - name: Create auto.tfvars
-        run: |
-          cd terraform
-          cat > auto.tfvars <<EOF
-          subscription_id         = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          tenant_id               = "${{ secrets.AZURE_TENANT_ID }}"
-          client_id               = "${{ secrets.AZURE_CLIENT_ID }}"
-          client_secret           = "${{ secrets.AZURE_CLIENT_SECRET }}"
-          location                = "eastus"
-          resource_group_name     = "restaurant-api-rg"
-          function_app_name       = "restaurant-api-func"
-          EOF
-
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -58,11 +45,15 @@ jobs:
       - name: Terraform Apply
         run: |
           cd terraform
+          # Pass all variables directly on command line
           terraform apply -input=false -auto-approve \
             -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
             -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}"
+            -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
+            -var="location=eastus" \
+            -var="resource_group_name=restaurant-api-rg" \
+            -var="function_app_name=restaurant-api-func"
 
       - name: Export Terraform Outputs
         id: terraform-outputs
