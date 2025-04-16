@@ -76,5 +76,26 @@ variable "log_retention_days" {
   default     = 30
 }
 
+variable "client_id" {
+  description = "Azure Service Principal Client ID"
+  type        = string
+}
 
-# consistency_level
+variable "client_secret" {
+  description = "Azure Service Principal Client Secret"
+  type        = string
+  sensitive   = true
+}
+
+
+variable "resource_group_name" {
+  description = "Name of the resource group"
+  type        = string
+  default     = "restaurant-api-rg"
+}
+
+variable "function_app_name" {
+  description = "Name of the Azure Function App"
+  type        = string
+  default     = "restaurant-api-func"
+}
