@@ -2,18 +2,25 @@
 # It includes steps for initializing Terraform, validating, planning, and applying the configuration
 # and then deploying the function app with the specified publish profile
 #
+
+name: Terraform and Azure Function Deployment
+
 on:
   push:
-    branches: ["feature/assignment"]
-
-permissions:
-  id-token: write # Required for OIDC authentication
-  contents: read
+    branches:
+      - main # or your default branch name
+      - feature/assignment # branch name from your previous log
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   terraform:
     name: "Terraform Infrastructure Deployment"
     runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
     steps:
       - name: Checkout code
@@ -22,18 +29,26 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: "1.5.0" # Specify the Terraform version you need
+          terraform_version: "1.5.0"
 
-      - name: Azure Login with OIDC
+      - name: Create terraform.tfvars
+        run: |
+          cd terraform
+          cat > terraform.tfvars <<EOF
+          subscription_id = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          tenant_id       = "${{ secrets.AZURE_TENANT_ID }}"
+          client_id       = "${{ secrets.AZURE_CLIENT_ID }}"
+          client_secret   = "${{ secrets.AZURE_CLIENT_SECRET }}"
+          EOF
+
+      - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Terraform Init
         run: |
-          cd terraform  # Adjust if your Terraform files are in a different directory
+          cd terraform
           terraform init
 
       - name: Terraform Validate
@@ -51,18 +66,17 @@ jobs:
           cd terraform
           terraform apply -auto-approve tfplan
 
-      # Optionally store outputs from Terraform to use in the next job
       - name: Export Terraform Outputs
         id: terraform-outputs
         run: |
           cd terraform
-          echo "function_app_name=$(terraform output -raw function_app_name)" >> $GITHUB_ENV
-          echo "resource_group=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
-        continue-on-error: true # In case these specific outputs don't exist
+          echo "function_app_name=$(terraform output -raw function_app_name || echo 'restaurant-api-func')" >> $GITHUB_ENV
+          echo "resource_group=$(terraform output -raw resource_group_name || echo 'your-resource-group')" >> $GITHUB_ENV
+        continue-on-error: true
 
   deploy-function:
     name: "Deploy Azure Function App"
-    needs: terraform # Wait for terraform job to complete
+    needs: terraform
     runs-on: ubuntu-latest
 
     steps:
@@ -72,7 +86,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10" # Set to the Python version your function uses
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
@@ -80,25 +94,15 @@ jobs:
           pip install -r requirements.txt
           pip install azure-functions-core-tools@4 --ignore-installed
 
-      - name: Azure Login with OIDC
+      - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Get Function App Publish Profile
-        id: get-publish-profile
-        run: |
-          PUBLISH_PROFILE=$(az functionapp deployment list-publishing-profiles --name restaurant-api-func --resource-group ${{ env.resource_group || 'your-resource-group-name' }} --xml)
-          echo "::add-mask::$PUBLISH_PROFILE"
-          echo "PUBLISH_PROFILE=$PUBLISH_PROFILE" >> $GITHUB_ENV
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
-          app-name: "restaurant-api-func" # Or use ${{ env.function_app_name }} if set by Terraform
+          app-name: ${{ env.function_app_name || 'restaurant-api-func' }}
           package: "."
-          publish-profile: ${{ env.PUBLISH_PROFILE }}
           respect-funcignore: true
           scm-do-build-during-deployment: true
