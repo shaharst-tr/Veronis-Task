@@ -1,65 +1,104 @@
-# This workflow will build a Python app and deploy it to an Azure Functions App on Linux when a commit is pushed to your default branch.
+# This workflow deploys an Azure Function App using Terraform and Python
+# It includes steps for initializing Terraform, validating, planning, and applying the configuration
+# and then deploying the function app with the specified publish profile
 #
-# This workflow assumes you have already created the target Azure Functions app.
-# For instructions see https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-python?pivots=python-mode-configuration
-#
-# To configure this workflow:
-# 1. Set up the following secrets in your repository:
-#   - AZURE_FUNCTIONAPP_PUBLISH_PROFILE
-# 2. Change env variables for your configuration.
-#
-# For more information on:
-#   - GitHub Actions for Azure: https://github.com/Azure/Actions
-#   - Azure Functions Action: https://github.com/Azure/functions-action
-#   - Publish Profile: https://github.com/Azure/functions-action#using-publish-profile-as-deployment-credential-recommended
-#   - Azure Service Principal for RBAC: https://github.com/Azure/functions-action#using-azure-service-principal-for-rbac-as-deployment-credential
-#
-# For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples/tree/master/FunctionApp
-
-name: Deploy Python project to Azure Function App
-
 on:
   push:
     branches: ["feature/assignment"]
 
-env:
-  AZURE_FUNCTIONAPP_NAME: "your-app-name" # set this to your function app name on Azure
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: "python-app" # set this to the path to your function app project, defaults to the repository root
-  PYTHON_VERSION: "3.9" # set this to the python version to use (e.g. '3.6', '3.7', '3.8')
+permissions:
+  id-token: write # Required for OIDC authentication
+  contents: read
 
 jobs:
-  build-and-deploy:
+  terraform:
+    name: "Terraform Infrastructure Deployment"
     runs-on: ubuntu-latest
-    environment: dev
+
     steps:
-      - name: "Checkout GitHub Action"
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # If you want to use Azure RBAC instead of Publish Profile, then uncomment the task below
-      # - name: 'Login via Azure CLI'
-      #   uses: azure/login@v1
-      #   with:
-      #     creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }} # set up AZURE_RBAC_CREDENTIALS secrets in your repository
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0" # Specify the Terraform version you need
 
-      - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
+      - name: Azure Login with OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform  # Adjust if your Terraform files are in a different directory
+          terraform init
+
+      - name: Terraform Validate
+        run: |
+          cd terraform
+          terraform validate
+
+      - name: Terraform Plan
+        run: |
+          cd terraform
+          terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+
+      # Optionally store outputs from Terraform to use in the next job
+      - name: Export Terraform Outputs
+        id: terraform-outputs
+        run: |
+          cd terraform
+          echo "function_app_name=$(terraform output -raw function_app_name)" >> $GITHUB_ENV
+          echo "resource_group=$(terraform output -raw resource_group_name)" >> $GITHUB_ENV
+        continue-on-error: true # In case these specific outputs don't exist
+
+  deploy-function:
+    name: "Deploy Azure Function App"
+    needs: terraform # Wait for terraform job to complete
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: "3.10" # Set to the Python version your function uses
 
-      - name: "Resolve Project Dependencies Using Pip"
-        shell: bash
+      - name: Install dependencies
         run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
           python -m pip install --upgrade pip
-          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
-          popd
+          pip install -r requirements.txt
+          pip install azure-functions-core-tools@4 --ignore-installed
 
-    # - name: 'Run Azure Functions Action'
-    #   uses: Azure/functions-action@v1
-    #   id: fa
-    #   with:
-    #     app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
-    #     package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-    #     publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }} # Remove publish-profile to use Azure RBAC
-    #     scm-do-build-during-deployment: true
-    #     enable-oryx-build: true
+      - name: Azure Login with OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get Function App Publish Profile
+        id: get-publish-profile
+        run: |
+          PUBLISH_PROFILE=$(az functionapp deployment list-publishing-profiles --name restaurant-api-func --resource-group ${{ env.resource_group || 'your-resource-group-name' }} --xml)
+          echo "::add-mask::$PUBLISH_PROFILE"
+          echo "PUBLISH_PROFILE=$PUBLISH_PROFILE" >> $GITHUB_ENV
+
+      - name: Deploy to Azure Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: "restaurant-api-func" # Or use ${{ env.function_app_name }} if set by Terraform
+          package: "."
+          publish-profile: ${{ env.PUBLISH_PROFILE }}
+          respect-funcignore: true
+          scm-do-build-during-deployment: true
