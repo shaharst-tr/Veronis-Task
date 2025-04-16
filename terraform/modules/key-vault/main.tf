@@ -25,7 +25,7 @@ resource "azurerm_key_vault" "kv" {
 resource "azurerm_key_vault_access_policy" "terraform" {
   key_vault_id = azurerm_key_vault.kv.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = "caab086b-bafd-4606-8802-487d61390666"
+  object_id    = "8c211e9f-d364-4243-9aa2-ff6c9ca8b0e1"
 
   secret_permissions = [
     "Get",
