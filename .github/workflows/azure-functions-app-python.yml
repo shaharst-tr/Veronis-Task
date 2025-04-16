@@ -27,40 +27,18 @@ jobs:
         with:
           terraform_version: "1.5.0"
 
-      - name: Inspect Terraform files
-        run: |
-          cd terraform
-          echo "Listing all .tf files:"
-          find . -name "*.tf" | sort
-
-          echo -e "\nListing all variables defined:"
-          grep -r "variable" --include="*.tf" . || echo "No variables found"
-
-          echo -e "\nChecking for required variables:"
-          grep -r "required" --include="*.tf" . || echo "No required variables found"
-
       - name: Create auto.tfvars
         run: |
           cd terraform
-          # Create a comprehensive tfvars file with all possible variables
           cat > auto.tfvars <<EOF
-          # Authentication variables
           subscription_id         = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           tenant_id               = "${{ secrets.AZURE_TENANT_ID }}"
           client_id               = "${{ secrets.AZURE_CLIENT_ID }}"
           client_secret           = "${{ secrets.AZURE_CLIENT_SECRET }}"
-
-          # Common Azure variables
           location                = "eastus"
           resource_group_name     = "restaurant-api-rg"
           function_app_name       = "restaurant-api-func"
-
-          # Additional variables - add any other variables your Terraform might need
-          environment             = "dev"
           EOF
-
-          echo "Created auto.tfvars with the following content:"
-          cat auto.tfvars | grep -v "client_secret"
 
       - name: Azure Login
         uses: azure/login@v1
@@ -77,28 +55,19 @@ jobs:
           cd terraform
           terraform validate
 
-      - name: Terraform Plan
-        run: |
-          cd terraform
-          # Add -input=false to prevent prompts
-          # Add -auto-approve to automatically approve
-          terraform plan -input=false -out=tfplan
-
-      - name: Terraform Show Plan
-        run: |
-          cd terraform
-          terraform show tfplan || echo "Failed to show plan"
-
       - name: Terraform Apply
         run: |
           cd terraform
-          terraform apply -input=false -auto-approve tfplan
+          terraform apply -input=false -auto-approve \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+            -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}"
 
       - name: Export Terraform Outputs
         id: terraform-outputs
         run: |
           cd terraform
-          terraform output -json || echo "No outputs found"
           echo "function_app_name=$(terraform output -raw function_app_name 2>/dev/null || echo 'restaurant-api-func')" >> $GITHUB_ENV
           echo "resource_group=$(terraform output -raw resource_group_name 2>/dev/null || echo 'restaurant-api-rg')" >> $GITHUB_ENV
 
