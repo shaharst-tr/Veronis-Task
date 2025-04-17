@@ -50,7 +50,7 @@ jobs:
         run: |
           cd terraform
 
-          terraform apply -input=false -auto-approve
+          terraform apply -input=false -auto-approve --target=module.key-vault
 
       - name: Export Terraform Output for Function App Name
         id: export-tf-output
