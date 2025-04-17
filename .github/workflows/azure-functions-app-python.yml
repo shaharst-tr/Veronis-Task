@@ -46,20 +46,29 @@ jobs:
           cd terraform
           terraform validate
 
-      - name: Terraform Apply
+      - name: Debug Terraform Outputs
         run: |
           cd terraform
+          echo "All Terraform outputs:"
+          terraform output
 
-          terraform apply -input=false -auto-approve
+          echo "JSON format:"
+          terraform output -json
 
-      - name: Export Terraform Output for Function App Name
-        id: export-tf-output
-        run: |
-          function_app_name=$(terraform -chdir=./terraform output -raw function_app_name)
-          # Use the multiline syntax for GitHub outputs
-          echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
-          echo "$function_app_name" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+      # - name: Terraform Apply
+      #   run: |
+      #     cd terraform
+
+      #     terraform apply -input=false -auto-approve
+
+      # - name: Export Terraform Output for Function App Name
+      #   id: export-tf-output
+      #   run: |
+      #     function_app_name=$(terraform -chdir=./terraform output -raw function_app_name)
+      #     # Use the multiline syntax for GitHub outputs
+      #     echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
+      #     echo "$function_app_name" >> $GITHUB_OUTPUT
+      #     echo "EOF" >> $GITHUB_OUTPUT
 
     outputs:
       function_app_name: ${{ steps.export-tf-output.outputs.function_app_name }}
