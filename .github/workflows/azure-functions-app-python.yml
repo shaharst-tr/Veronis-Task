@@ -94,7 +94,10 @@ jobs:
           cd python-app
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install azure-functions-core-tools==4 --ignore-installed
+
+      - name: Setup Azure Functions Core Tools
+        run: |
+          npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
       - name: Azure Login
         uses: azure/login@v1
