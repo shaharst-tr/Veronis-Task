@@ -34,7 +34,7 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv-s"
+    key_vault       = "${local.name_prefix}-kv-l"
     cosmos_account  = "${local.name_prefix}-cosmos"
     function_app    = "${local.name_prefix}-func-s"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
