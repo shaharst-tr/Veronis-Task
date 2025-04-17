@@ -52,22 +52,22 @@ jobs:
       #     # Hard-code the value for debugging
       #     echo "function_app_name=restaurant-api-func-debug" >> $GITHUB_OUTPUT
 
-      # - name: Terraform Apply
-      #   run: |
-      #     cd terraform
-      #     # Pass all variables directly on command line
-      #     terraform apply -input=false -auto-approve \
-      #       -var="location=westeurope" \
-      #       -var="resource_group_name=restaurant-api-rg" \
-      #       -var="function_app_name=restaurant-api-func-q"
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          # Pass all variables directly on command line
+          terraform apply -input=false -auto-approve \
+            -var="location=westeurope" \
+            -var="resource_group_name=restaurant-api-rg" \
+            -var="function_app_name=restaurant-api-func-d"
 
       - name: Export Terraform Output for Function App Name
         id: export-tf-output
         run: |
           cd terraform
           # Capture the Terraform output for function_app_name
-          # function_app_name=$(terraform output -raw function_app_name)
-          # Use the multiline syntax to safely export the output
+          function_app_name=$(terraform output -raw function_app_name)
+
           echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
           echo "$function_app_name" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -91,6 +91,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd python-app
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install azure-functions-core-tools@4 --ignore-installed
