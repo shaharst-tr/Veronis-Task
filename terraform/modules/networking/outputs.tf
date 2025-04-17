@@ -1,58 +1,33 @@
 ################################################################
-# Root-level outputs for the restaurant API project
+# Networking Module Outputs
 ################################################################
 
-# Function App outputs
-output "function_app_url" {
-  description = "The default function app URL"
-  value       = module.function_app.function_app_hostname
+output "frontdoor_endpoint" {
+  description = "The Front Door endpoint URL"
+  value       = "https://${azurerm_cdn_frontdoor_endpoint.main.host_name}"
 }
 
-output "function_app_name" {
-  description = "The name of the function app"
-  value       = local.names.function_app
+output "frontdoor_id" {
+  description = "The Front Door profile ID"
+  value       = azurerm_cdn_frontdoor_profile.main.id
 }
 
-# Cosmos DB outputs
-output "cosmos_db_endpoint" {
-  description = "The endpoint of the Cosmos DB account"
-  value       = module.cosmos_db.cosmos_db_endpoint
+output "frontdoor_hostname" {
+  description = "The Front Door endpoint hostname"
+  value       = azurerm_cdn_frontdoor_endpoint.main.host_name
 }
 
-output "cosmos_db_name" {
-  description = "The name of the Cosmos DB account"
-  value       = module.cosmos_db.cosmos_db_name
+output "function_subnet_id" {
+  description = "The ID of the subnet used for function app integration"
+  value       = azurerm_subnet.function_integration.id
 }
 
-# Key Vault outputs
-output "key_vault_uri" {
-  description = "The URI of the Key Vault"
-  value       = module.key_vault.key_vault_uri
+output "vnet_id" {
+  description = "The ID of the virtual network"
+  value       = azurerm_virtual_network.main.id
 }
 
-# Storage outputs
-output "storage_account_name" {
-  description = "The name of the storage account"
-  value       = module.function_app.storage_account_name
-}
-
-# Front Door outputs
-output "api_endpoint" {
-  description = "The secure API endpoint URL"
-  value       = module.networking.frontdoor_endpoint
-}
-
-output "recommendation_api_url" {
-  description = "The URL for restaurant recommendations"
-  value       = "${module.networking.frontdoor_endpoint}/api/restaurant-recommend"
-}
-
-output "admin_api_url" {
-  description = "The URL for admin operations"
-  value       = "${module.networking.frontdoor_endpoint}/api/restaurants/admin"
-}
-
-output "health_check_url" {
-  description = "The URL for health checks"
-  value       = "${module.networking.frontdoor_endpoint}/api/health"
+output "waf_policy_id" {
+  description = "The ID of the Web Application Firewall policy"
+  value       = azurerm_cdn_frontdoor_firewall_policy.main.id
 }

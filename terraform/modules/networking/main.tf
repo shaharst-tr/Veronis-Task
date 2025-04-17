@@ -51,6 +51,7 @@ resource "azurerm_cdn_frontdoor_origin" "function_app" {
   origin_host_header            = var.function_app_hostname
   priority                      = 1
   weight                        = 1000
+  certificate_name_check_enabled = true
 }
 
 # Web Application Firewall Policy
@@ -227,16 +228,6 @@ resource "azurerm_app_service_virtual_network_swift_connection" "function_vnet_i
   subnet_id      = azurerm_subnet.function_integration.id
 }
 
-# Function app access restrictions
-resource "azurerm_function_app_access_restriction" "frontend" {
-  function_app_name = var.function_app_name
-  resource_group_name = var.resource_group_name
-  priority = 100
-  action = "Allow"
-  service_tag = "AzureFrontDoor.Backend"
-  name = "Allow Front Door"
-}
-
 # Diagnostic settings for Front Door
 resource "azurerm_monitor_diagnostic_setting" "frontdoor" {
   name                       = "fd-diag-logs"
@@ -259,7 +250,7 @@ resource "azurerm_monitor_diagnostic_setting" "frontdoor" {
 
 # CDN rule set for optimizing restaurant API
 resource "azurerm_cdn_frontdoor_rule_set" "api_optimization" {
-  name                     = "restaurant-api-optimization"
+  name                     = "apioptimization"
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main.id
 }
 
