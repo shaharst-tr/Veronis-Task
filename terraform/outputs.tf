@@ -14,3 +14,8 @@ output "key_vault_uri" {
   value       = module.key_vault.key_vault_uri
   description = "The URI of the Key Vault"
 }
+
+output "function_app_name" {
+  value       = module.function_app.function_app_name
+  description = "Function app name"
+}
