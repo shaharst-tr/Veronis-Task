@@ -5,7 +5,7 @@
 
 # Front Door profile (Premium tier for enhanced security features)
 resource "azurerm_cdn_frontdoor_profile" "main" {
-  name                = "fd-${replace(var.resource_group_name, "-rg", "")}"
+  name                = "fd${replace(replace(var.resource_group_name, "-rg", ""), "-", "")}"
   resource_group_name = var.resource_group_name
   sku_name            = "Premium_AzureFrontDoor"
 
@@ -14,7 +14,7 @@ resource "azurerm_cdn_frontdoor_profile" "main" {
 
 # Front Door endpoint
 resource "azurerm_cdn_frontdoor_endpoint" "main" {
-  name                     = "endpoint-${replace(var.resource_group_name, "-rg", "")}"
+  name                     = "endpoint${replace(replace(var.resource_group_name, "-rg", ""), "-", "")}"
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.main.id
 
   tags = var.tags
@@ -56,7 +56,7 @@ resource "azurerm_cdn_frontdoor_origin" "function_app" {
 
 # Web Application Firewall Policy
 resource "azurerm_cdn_frontdoor_firewall_policy" "main" {
-  name                = "wafpolicy-${replace(var.resource_group_name, "-rg", "")}"
+  name                = "wafpolicy${replace(replace(var.resource_group_name, "-rg", ""), "-", "")}"
   resource_group_name = var.resource_group_name
   sku_name            = azurerm_cdn_frontdoor_profile.main.sku_name
   enabled             = true
