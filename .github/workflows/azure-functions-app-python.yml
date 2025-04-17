@@ -59,8 +59,26 @@ jobs:
         id: terraform-outputs
         run: |
           cd terraform
-          echo "function_app_name=$(terraform output -raw function_app_name 2>/dev/null || echo 'restaurant-api-func')" >> $GITHUB_ENV
-          echo "resource_group=$(terraform output -raw resource_group_name 2>/dev/null || echo 'restaurant-api-rg')" >> $GITHUB_ENV
+          # Set default values to be used if output fails
+          echo "function_app_name=restaurant-api-func" >> $GITHUB_ENV
+          echo "resource_group=restaurant-api-rg" >> $GITHUB_ENV
+
+          # Try to get values from terraform output, but don't fail if not found
+          terraform output -json > outputs.json || true
+
+          # Only update the environment variables if we successfully got outputs
+          if [ -s outputs.json ]; then
+            function_app=$(terraform output -raw function_app_name 2>/dev/null) || true
+            resource_group=$(terraform output -raw resource_group_name 2>/dev/null) || true
+            
+            if [ ! -z "$function_app" ]; then
+              echo "function_app_name=$function_app" >> $GITHUB_ENV
+            fi
+            
+            if [ ! -z "$resource_group" ]; then
+              echo "resource_group=$resource_group" >> $GITHUB_ENV
+            fi
+          fi
 
   deploy-function:
     name: "Deploy Azure Function App"

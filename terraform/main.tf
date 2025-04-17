@@ -7,6 +7,13 @@ terraform {
       version = "~> 3.0" 
     }
   }
+  
+  backend "azurerm" {
+    resource_group_name  = "terraform-state-rg"
+    storage_account_name = "tfstaterestaurantapi"
+    container_name       = "tfstate"
+    key                  = "restaurant-api.tfstate"
+  }
 }
 
 provider "azurerm" {
@@ -27,9 +34,9 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv-s"
+    key_vault       = "${local.name_prefix}-kv-p"
     cosmos_account  = "${local.name_prefix}-cosmos"
-    function_app    = "${local.name_prefix}-func-unique"
+    function_app    = "${local.name_prefix}-func"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
     app_insights    = "${local.name_prefix}-insights"
     app_plan        = "${local.name_prefix}-plan"
