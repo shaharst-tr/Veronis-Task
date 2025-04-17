@@ -46,11 +46,11 @@ jobs:
           cd terraform
           terraform validate
 
-      - name: Set hard-coded Terraform output for function_app_name
-        id: export-tf-output
-        run: |
-          # Hard-code the value for debugging
-          echo "function_app_name=restaurant-api-func-debug" >> $GITHUB_OUTPUT
+      # - name: Set hard-coded Terraform output for function_app_name
+      #   id: export-tf-output
+      #   run: |
+      #     # Hard-code the value for debugging
+      #     echo "function_app_name=restaurant-api-func-debug" >> $GITHUB_OUTPUT
 
       # - name: Terraform Apply
       #   run: |
@@ -61,16 +61,16 @@ jobs:
       #       -var="resource_group_name=restaurant-api-rg" \
       #       -var="function_app_name=restaurant-api-func-q"
 
-      # - name: Export Terraform Output for Function App Name
-      #   id: export-tf-output
-      #   run: |
-      #     cd terraform
-      #     # Capture the Terraform output for function_app_name
-      #     function_app_name=$(terraform output -raw function_app_name)
-      #     # Use the multiline syntax to safely export the output
-      #     echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
-      #     echo "$function_app_name" >> $GITHUB_OUTPUT
-      #     echo "EOF" >> $GITHUB_OUTPUT
+      - name: Export Terraform Output for Function App Name
+        id: export-tf-output
+        run: |
+          cd terraform
+          # Capture the Terraform output for function_app_name
+          # function_app_name=$(terraform output -raw function_app_name)
+          # Use the multiline syntax to safely export the output
+          echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
+          echo "$function_app_name" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
     outputs:
       function_app_name: ${{ steps.export-tf-output.outputs.function_app_name }}
