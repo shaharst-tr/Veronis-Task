@@ -46,17 +46,33 @@ jobs:
           cd terraform
           terraform validate
 
-      - name: Debug Terraform Outputs
+      - name: Export Function App Name
+        id: export-function-name
         run: |
           cd terraform
-          echo "All Terraform outputs:"
-          terraform output -raw function_app_name
-          APP_NAME=$(terraform output function_app_name)
-          echo "function_app_name=$APP_NAME" >> $GITHUB_OUTPUT
 
-          echo "JSON format:"
-          terraform output function_app_name -json
+          # First dump all outputs to JSON
+          terraform output -json > tf_output.json
 
+          # List all available output keys
+          echo "Available output keys:"
+          jq 'keys[]' tf_output.json
+
+          # Try to extract function app name (adapt the key if needed)
+          if jq -e '.function_app_name' tf_output.json > /dev/null; then
+            # Output exists, extract the value
+            APP_NAME=$(jq -r '.function_app_name.value' tf_output.json)
+            echo "Found function app name: $APP_NAME"
+            
+            # Set as environment variable and output
+            echo "FUNCTION_APP_NAME=$APP_NAME" >> $GITHUB_ENV
+            echo "function_app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "Error: function_app_name not found in outputs"
+            echo "Available outputs:"
+            jq '.' tf_output.json
+            exit 1
+          fi
       # - name: Terraform Apply
       #   run: |
       #     cd terraform
