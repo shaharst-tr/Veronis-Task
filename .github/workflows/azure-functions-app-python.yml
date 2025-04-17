@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+      TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      TF_VAR_client_secret: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -48,12 +51,9 @@ jobs:
           cd terraform
           # Pass all variables directly on command line
           terraform apply -input=false -auto-approve \
-            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-            -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-            -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
             -var="location=westeurope" \
             -var="resource_group_name=restaurant-api-rg" \
-            -var="function_app_name=restaurant-api-func-t"
+            -var="function_app_name=restaurant-api-func-r"
 
       - name: Export Terraform Outputs
         id: terraform-outputs
