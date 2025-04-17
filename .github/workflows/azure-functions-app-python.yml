@@ -108,7 +108,7 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: "restaurant-api-func-d"
-          package: "."
+          package: "./python-app"
           respect-funcignore: true
           scm-do-build-during-deployment: true
 # ${{ needs.terraform.outputs.function_app_name }}
