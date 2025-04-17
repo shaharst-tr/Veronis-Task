@@ -97,5 +97,5 @@ variable "resource_group_name" {
 variable "function_app_name" {
   description = "Name of the Azure Function App"
   type        = string
-  default     = "restaurant-api-func-g"
+  default     = "restaurant-api-func-y"
 }

@@ -34,9 +34,9 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv-g"
+    key_vault       = "${local.name_prefix}-kv-y"
     cosmos_account  = "${local.name_prefix}-cosmos"
-    function_app    = "${local.name_prefix}-func-g"
+    function_app    = "${local.name_prefix}-func-y"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
     app_insights    = "${local.name_prefix}-insights"
     app_plan        = "${local.name_prefix}-plan"
@@ -273,4 +273,37 @@ resource "azurerm_monitor_diagnostic_setting" "function_logs" {
     category = "AllMetrics"
     enabled  = true
   }
+}
+
+# Call the networking module
+module "networking" {
+  source = "./modules/networking"
+  
+  resource_group_name         = azurerm_resource_group.rg.name
+  location                    = var.location
+  function_app_hostname       = module.function_app.function_app_hostname
+  function_app_id             = module.function_app.function_app_id
+  function_app_name           = local.names.function_app
+  log_analytics_workspace_id  = azurerm_log_analytics_workspace.logs.id
+  
+  # WAF Mode - Start with Detection, then move to Prevention after testing
+  waf_mode                    = "Detection"
+  
+  tags = local.common_tags
+  
+  depends_on = [
+    module.function_app,
+    azurerm_log_analytics_workspace.logs
+  ]
+}
+
+# Create an admin API key secret in Key Vault
+resource "azurerm_key_vault_secret" "admin_api_key" {
+  name         = "admin-api-key"
+  value        = uuid() # Generate a unique API key
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [
+    module.key_vault
+  ]
 }
