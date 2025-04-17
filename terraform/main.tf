@@ -1,4 +1,4 @@
-# main.tf - Provider configuration and main resources
+# main.tf - Provider configuration and main resources 
 
 terraform {
   required_providers {
