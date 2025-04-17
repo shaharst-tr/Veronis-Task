@@ -51,31 +51,14 @@ jobs:
         run: |
           cd terraform
 
-          # Debug all outputs
-          echo "All Terraform outputs:"
-          terraform output
+          # Extract only the function app name line and clean it
+          APP_NAME=$(terraform output | grep "^function_app_name" | cut -d '=' -f2 | tr -d ' "')
 
-          # Try different approaches to get the function app name
-          echo "Trying to get function app name..."
+          echo "Extracted function app name: $APP_NAME"
 
-          # Method 1: Look for any output that might contain function names
-          OUTPUTS=$(terraform output)
-          echo "$OUTPUTS" | grep -i function
-
-          # Method 2: Parse the terraform output directly
-          # This assumes the output is in a format like: function_app_name = "my-function-app"
-          APP_NAME=$(terraform output | grep -i function_app_name | cut -d '=' -f2 | tr -d ' "')
-
-          if [ -n "$APP_NAME" ]; then
-            echo "Found function app name: $APP_NAME"
-            
-            # Set as environment variable and output
-            echo "FUNCTION_APP_NAME=$APP_NAME" >> $GITHUB_ENV
-            echo "function_app_name=$APP_NAME" >> $GITHUB_OUTPUT
-          else
-            echo "Warning: Could not extract function app name"
-            exit 1
-          fi
+          # Set environment variable and output correctly
+          echo "FUNCTION_APP_NAME=$APP_NAME" >> $GITHUB_ENV
+          echo "function_app_name=$APP_NAME" >> $GITHUB_OUTPUT
       # - name: Terraform Apply
       #   run: |
       #     cd terraform
