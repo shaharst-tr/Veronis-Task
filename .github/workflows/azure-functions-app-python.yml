@@ -51,7 +51,7 @@ jobs:
             -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
             -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
             -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
-            -var="location=northeurope" \
+            -var="location=westeurope" \
             -var="resource_group_name=restaurant-api-rg" \
             -var="function_app_name=restaurant-api-func"
 

@@ -33,7 +33,7 @@ variable "app_service_plan_name" {
 variable "app_service_plan_sku" {
   description = "SKU for the App Service Plan (Y1 for consumption plan)"
   type        = string
-  default     = "F1" # Consumption plan by default
+  default     = "P0v3" # Consumption plan by default
 }
 
 variable "python_version" {
