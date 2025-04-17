@@ -12,9 +12,10 @@ jobs:
     name: "Terraform Infrastructure Deployment"
     runs-on: ubuntu-latest
     env:
+      TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      # ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       TF_IN_AUTOMATION: true
 
@@ -47,13 +48,12 @@ jobs:
           cd terraform
           # Pass all variables directly on command line
           terraform apply -input=false -auto-approve \
-            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
             -var="client_id=${{ secrets.AZURE_CLIENT_ID }}" \
             -var="client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
             -var="location=westeurope" \
             -var="resource_group_name=restaurant-api-rg" \
-            -var="function_app_name=restaurant-api-func"
+            -var="function_app_name=restaurant-api-func-t"
 
       - name: Export Terraform Outputs
         id: terraform-outputs
@@ -112,3 +112,4 @@ jobs:
           package: "."
           respect-funcignore: true
           scm-do-build-during-deployment: true
+#  -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
