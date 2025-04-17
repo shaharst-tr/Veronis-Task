@@ -46,6 +46,12 @@ jobs:
           cd terraform
           terraform validate
 
+      - name: Terraform Apply
+        run: |
+          cd terraform
+
+          terraform apply -input=false -auto-approve
+
       - name: Export Function App Name
         id: export-function-name
         run: |
@@ -58,11 +64,6 @@ jobs:
 
           # Set the output variable for the next job
           echo "function_app_name=$APP_NAME" >> $GITHUB_OUTPUT
-      # - name: Terraform Apply
-      #   run: |
-      #     cd terraform
-
-      #     terraform apply -input=false -auto-approve
 
       # - name: Export Terraform Output for Function App Name
       #   id: export-tf-output
