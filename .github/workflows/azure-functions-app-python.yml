@@ -52,28 +52,28 @@ jobs:
       #     # Hard-code the value for debugging
       #     echo "function_app_name=restaurant-api-func-debug" >> $GITHUB_OUTPUT
 
-      - name: Terraform Apply
-        run: |
-          cd terraform
-          # Pass all variables directly on command line
-          terraform apply -input=false -auto-approve \
-            -var="location=westeurope" \
-            -var="resource_group_name=restaurant-api-rg" \
-            -var="function_app_name=restaurant-api-func-d"
+    #   - name: Terraform Apply
+    #     run: |
+    #       cd terraform
+    #       # Pass all variables directly on command line
+    #       terraform apply -input=false -auto-approve \
+    #         -var="location=westeurope" \
+    #         -var="resource_group_name=restaurant-api-rg" \
+    #         -var="function_app_name=restaurant-api-func-d"
 
-      - name: Export Terraform Output for Function App Name
-        id: export-tf-output
-        run: |
-          cd terraform
-          # Capture the Terraform output for function_app_name
-          function_app_name=$(terraform output -raw function_app_name)
+    #   - name: Export Terraform Output for Function App Name
+    #     id: export-tf-output
+    #     run: |
+    #       cd terraform
+    #       # Capture the Terraform output for function_app_name
+    #       function_app_name=$(terraform output -raw function_app_name)
 
-          echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
-          echo "$function_app_name" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+    #       echo "function_app_name<<EOF" >> $GITHUB_OUTPUT
+    #       echo "$function_app_name" >> $GITHUB_OUTPUT
+    #       echo "EOF" >> $GITHUB_OUTPUT
 
-    outputs:
-      function_app_name: ${{ steps.export-tf-output.outputs.function_app_name }}
+    # outputs:
+    #   function_app_name: ${{ steps.export-tf-output.outputs.function_app_name }}
 
   deploy-function:
     name: "Deploy Azure Function App"
@@ -94,7 +94,7 @@ jobs:
           cd python-app
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install azure-functions-core-tools@4 --ignore-installed
+          pip install azure-functions-core-tools==4 --ignore-installed
 
       - name: Azure Login
         uses: azure/login@v1
@@ -104,7 +104,8 @@ jobs:
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
-          app-name: ${{ needs.terraform.outputs.function_app_name }}
+          app-name: "restaurant-api-func-d"
           package: "."
           respect-funcignore: true
           scm-do-build-during-deployment: true
+# ${{ needs.terraform.outputs.function_app_name }}
