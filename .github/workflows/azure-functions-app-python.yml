@@ -50,10 +50,12 @@ jobs:
         run: |
           cd terraform
           echo "All Terraform outputs:"
-          terraform output
+          terraform output -raw function_app_name
+          APP_NAME=$(terraform output -raw function_app_name)
+          echo "function_app_name=$APP_NAME" >> $GITHUB_OUTPUT
 
           echo "JSON format:"
-          terraform output -json
+          terraform output -raw function_app_name -json
 
       # - name: Terraform Apply
       #   run: |
