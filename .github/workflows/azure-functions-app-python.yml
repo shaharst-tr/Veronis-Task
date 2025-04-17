@@ -109,7 +109,7 @@ jobs:
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
         with:
-          app-name: "restaurant-api-func-h"
+          app-name: ${{ needs.terraform.outputs.function_app_name }}
           package: "./python-app"
           respect-funcignore: true
           scm-do-build-during-deployment: true
