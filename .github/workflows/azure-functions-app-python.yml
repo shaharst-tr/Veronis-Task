@@ -75,7 +75,7 @@ jobs:
       #     echo "EOF" >> $GITHUB_OUTPUT
 
     outputs:
-      function_app_name: ${{ steps.export-tf-output.outputs.function_app_name }}
+      function_app_name: ${{ steps.export-function-name.outputs.function_app_name }}
 
   deploy-function:
     name: "Deploy Azure Function App"
