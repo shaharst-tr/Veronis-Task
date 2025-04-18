@@ -13,7 +13,7 @@ variable "tenant_id" {
 variable "project_name" {
   description = "Project name used as prefix for resources"
   type        = string
-  default     = "veronis-api"
+  default     = "veronis-test"
 }
 
 variable "environment" {
