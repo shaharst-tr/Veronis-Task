@@ -34,9 +34,9 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv-w"
+    key_vault       = "${local.name_prefix}-kv"
     cosmos_account  = "${local.name_prefix}-cosmos"
-    function_app    = "${local.name_prefix}-func-y"
+    function_app    = "${local.name_prefix}-func"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
     app_insights    = "${local.name_prefix}-insights"
     app_plan        = "${local.name_prefix}-plan"
@@ -305,5 +305,171 @@ resource "azurerm_key_vault_secret" "admin_api_key" {
   
   depends_on = [
     module.key_vault
+  ]
+}
+
+# Generate a self-signed certificate for App Gateway
+resource "azurerm_key_vault_certificate" "appgw_cert" {
+  name         = "appgw-ssl-cert"
+  key_vault_id = module.key_vault.key_vault_id
+
+  certificate_policy {
+    issuer_parameters {
+      name = "Self"
+    }
+
+    key_properties {
+      exportable = true
+      key_size   = 2048
+      key_type   = "RSA"
+      reuse_key  = false
+    }
+
+    lifetime_action {
+      action {
+        action_type = "AutoRenew"
+      }
+
+      trigger {
+        days_before_expiry = 30
+      }
+    }
+
+    secret_properties {
+      content_type = "application/x-pkcs12"
+    }
+
+    x509_certificate_properties {
+      # Generate a certificate valid for 1 year
+      key_usage = [
+        "cRLSign",
+        "dataEncipherment",
+        "digitalSignature",
+        "keyAgreement",
+        "keyCertSign",
+        "keyEncipherment",
+      ]
+
+      subject            = "CN=${local.names.function_app}.azurewebsites.net"
+      validity_in_months = 12
+
+      subject_alternative_names {
+        dns_names = [
+          "${local.names.function_app}.azurewebsites.net",
+        ]
+      }
+    }
+  }
+
+  depends_on = [
+    module.key_vault
+  ]
+}
+
+# Export the certificate to a file
+resource "local_file" "ssl_cert" {
+  filename = "${path.module}/cert.pfx"
+  content  = azurerm_key_vault_certificate.appgw_cert.certificate_data_base64
+  
+  depends_on = [
+    azurerm_key_vault_certificate.appgw_cert
+  ]
+}
+
+# Call the networking module
+module "networking" {
+  source = "./modules/networking"
+  
+  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = var.location
+  function_app_hostname      = module.function_app.function_app_hostname
+  function_app_id            = module.function_app.function_app_id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
+  
+  # WAF Mode - Start with Detection, then move to Prevention after testing
+  waf_mode                   = "Detection"
+  
+  # SSL certificate details
+  ssl_cert_path              = local_file.ssl_cert.filename
+  ssl_cert_password          = ""  # Self-signed certs don't have a password
+  
+  tags = local.common_tags
+  
+  depends_on = [
+    module.function_app,
+    azurerm_log_analytics_workspace.logs,
+    local_file.ssl_cert
+  ]
+}
+
+# Create an admin API key secret in Key Vault if it doesn't exist already
+resource "azurerm_key_vault_secret" "admin_api_key" {
+  name         = "admin-api-key"
+  value        = uuid() # Generate a unique API key
+  key_vault_id = module.key_vault.key_vault_id
+  
+  depends_on = [
+    module.key_vault
+  ]
+}
+
+# Create a managed identity for Application Gateway
+resource "azurerm_user_assigned_identity" "appgw" {
+  name                = "id-appgw-${var.project_name}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = var.location
+  
+  tags = local.common_tags
+}
+
+# Grant the Application Gateway identity access to Key Vault
+resource "azurerm_key_vault_access_policy" "appgw_access_policy" {
+  key_vault_id = module.key_vault.key_vault_id
+  tenant_id    = var.tenant_id
+  object_id    = azurerm_user_assigned_identity.appgw.principal_id
+  
+  secret_permissions = [
+    "Get",
+    "List"
+  ]
+  
+  certificate_permissions = [
+    "Get",
+    "List"
+  ]
+  
+  depends_on = [
+    module.key_vault,
+    azurerm_user_assigned_identity.appgw
+  ]
+}
+
+# Update the networking module call to include the identity ID
+module "networking" {
+  source = "./modules/networking"
+  
+  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = var.location
+  function_app_hostname      = module.function_app.function_app_hostname
+  function_app_id            = module.function_app.function_app_id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
+  
+  # WAF Mode - Start with Detection, then move to Prevention after testing
+  waf_mode                   = "Detection"
+  
+  # SSL certificate details
+  ssl_cert_path              = local_file.ssl_cert.filename
+  ssl_cert_password          = ""  # Self-signed certs don't have a password
+  
+  # Application Gateway managed identity
+  appgw_identity_id          = azurerm_user_assigned_identity.appgw.id
+  
+  tags = local.common_tags
+  
+  depends_on = [
+    module.function_app,
+    azurerm_log_analytics_workspace.logs,
+    local_file.ssl_cert,
+    azurerm_key_vault_access_policy.appgw_access_policy
   ]
 }

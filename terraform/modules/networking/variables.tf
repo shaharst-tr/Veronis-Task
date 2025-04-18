@@ -1,5 +1,5 @@
 ################################################################
-# Networking Module Variables
+# Networking Module Variables for Application Gateway
 ################################################################
 
 variable "resource_group_name" {
@@ -19,11 +19,6 @@ variable "function_app_hostname" {
 
 variable "function_app_id" {
   description = "The ID of the function app"
-  type        = string
-}
-
-variable "function_app_name" {
-  description = "The name of the function app"
   type        = string
 }
 
@@ -58,4 +53,29 @@ variable "function_subnet_prefix" {
   description = "The address prefix for the function app subnet"
   type        = list(string)
   default     = ["10.0.1.0/24"]
+}
+
+variable "ssl_cert_path" {
+  description = "Path to the SSL certificate PFX file"
+  type        = string
+  default     = "cert.pfx"
+}
+
+variable "ssl_cert_password" {
+  description = "Password for the SSL certificate"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "enable_http_to_https_redirect" {
+  description = "Enable HTTP to HTTPS redirect"
+  type        = bool
+  default     = true
+}
+
+variable "appgw_identity_id" {
+  description = "The ID of the user-assigned managed identity for Application Gateway"
+  type        = string
+  default     = ""
 }

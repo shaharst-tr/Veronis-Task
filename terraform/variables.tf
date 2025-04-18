@@ -13,7 +13,7 @@ variable "tenant_id" {
 variable "project_name" {
   description = "Project name used as prefix for resources"
   type        = string
-  default     = "restaurant-api"
+  default     = "veronis-api"
 }
 
 variable "environment" {
@@ -91,11 +91,11 @@ variable "client_secret" {
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "restaurant-api-rg"
+  default     = "veronis-api-rg"
 }
 
 variable "function_app_name" {
   description = "Name of the Azure Function App"
   type        = string
-  default     = "restaurant-api-func-y"
+  default     = "veronis-api-func"
 }
