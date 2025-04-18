@@ -34,9 +34,9 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv"
+    key_vault       = "${local.name_prefix}-kv-q"
     cosmos_account  = "${local.name_prefix}-cosmos"
-    function_app    = "${local.name_prefix}-func"
+    function_app    = "${local.name_prefix}-func-q"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
     app_insights    = "${local.name_prefix}-insights"
     app_plan        = "${local.name_prefix}-plan"
@@ -419,7 +419,7 @@ module "networking" {
   
   # SSL certificate details
   ssl_cert_data              = azurerm_key_vault_certificate.appgw_cert.certificate_data_base64
-  ssl_cert_password          = ""  # Self-signed certs don't have a password
+  ssl_cert_password          = ""
   
   # Application Gateway managed identity
   appgw_identity_id          = azurerm_user_assigned_identity.appgw.id

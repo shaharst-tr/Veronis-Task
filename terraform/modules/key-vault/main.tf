@@ -37,6 +37,17 @@ resource "azurerm_key_vault_access_policy" "terraform" {
     "Restore",
     "Purge"
   ]
+
+  certificate_permissions = [
+    "Get",
+    "List",
+    "Update",
+    "Delete",
+    "Recover",
+    "Backup",
+    "Restore",
+    "Purge"
+  ]
 }
 
 # Create additional access policies for each object ID in the provided list
