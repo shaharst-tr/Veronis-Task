@@ -41,6 +41,7 @@ resource "azurerm_key_vault_access_policy" "terraform" {
   certificate_permissions = [
     "Get",
     "List",
+    "Create",
     "Update",
     "Delete",
     "Recover",
