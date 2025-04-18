@@ -36,23 +36,29 @@ output "storage_account_name" {
   value       = module.function_app.storage_account_name
 }
 
-# Front Door outputs
-output "api_endpoint" {
-  description = "The secure API endpoint URL"
-  value       = module.networking.frontdoor_endpoint
+# Application Gateway outputs
+output "app_gateway_public_ip" {
+  description = "The public IP address of the Application Gateway"
+  value       = module.networking.app_gateway_public_ip
 }
 
+output "app_gateway_fqdn" {
+  description = "The FQDN of the Application Gateway"
+  value       = module.networking.app_gateway_fqdn
+}
+
+# API endpoints through Application Gateway
 output "recommendation_api_url" {
   description = "The URL for restaurant recommendations"
-  value       = "${module.networking.frontdoor_endpoint}/api/restaurant-recommend"
+  value       = "https://${module.networking.app_gateway_fqdn}/api/restaurant-recommend"
 }
 
 output "admin_api_url" {
   description = "The URL for admin operations"
-  value       = "${module.networking.frontdoor_endpoint}/api/restaurants/admin"
+  value       = "https://${module.networking.app_gateway_fqdn}/api/restaurants/admin"
 }
 
 output "health_check_url" {
   description = "The URL for health checks"
-  value       = "${module.networking.frontdoor_endpoint}/api/health"
+  value       = "https://${module.networking.app_gateway_fqdn}/api/health"
 }

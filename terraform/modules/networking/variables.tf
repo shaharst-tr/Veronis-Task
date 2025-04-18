@@ -68,19 +68,13 @@ variable "ssl_cert_password" {
   sensitive   = true
 }
 
+variable "appgw_identity_id" {
+  description = "The ID of the user-assigned managed identity for Application Gateway"
+  type        = string
+}
+
 variable "enable_http_to_https_redirect" {
   description = "Enable HTTP to HTTPS redirect"
   type        = bool
   default     = true
-}
-
-variable "appgw_identity_id" {
-  description = "The ID of the user-assigned managed identity for Application Gateway"
-  type        = string
-  default     = ""
-}
-
-variable "function_app_name" {
-  description = "The name of the function app"
-  type        = string
 }
