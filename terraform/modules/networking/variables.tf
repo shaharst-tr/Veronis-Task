@@ -78,3 +78,8 @@ variable "enable_http_to_https_redirect" {
   type        = bool
   default     = true
 }
+
+variable "function_app_name" {
+  description = "The name of the function app"
+  type        = string
+}
