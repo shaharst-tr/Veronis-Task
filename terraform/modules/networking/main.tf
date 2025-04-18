@@ -312,7 +312,7 @@ resource "azurerm_application_gateway" "main" {
   # SSL certificate for HTTPS
   ssl_certificate {
     name                = "appgw-ssl-cert"
-    data                = filebase64(var.ssl_cert_path)
+    data                = var.ssl_cert_data
     password            = var.ssl_cert_password
   }
   

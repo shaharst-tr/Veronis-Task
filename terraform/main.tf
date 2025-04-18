@@ -418,7 +418,7 @@ module "networking" {
   waf_mode                   = "Detection"
   
   # SSL certificate details
-  ssl_cert_path              = local_file.ssl_cert.filename
+  ssl_cert_data              = azurerm_key_vault_certificate.appgw_cert.certificate_data_base64
   ssl_cert_password          = ""  # Self-signed certs don't have a password
   
   # Application Gateway managed identity

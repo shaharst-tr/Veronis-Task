@@ -83,3 +83,9 @@ variable "function_app_name" {
   description = "The name of the function app"
   type        = string
 }
+
+variable "ssl_cert_data" {
+  description = "Base64-encoded SSL certificate data"
+  type        = string
+  sensitive   = true
+}
