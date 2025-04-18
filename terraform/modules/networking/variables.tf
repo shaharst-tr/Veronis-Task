@@ -79,3 +79,8 @@ variable "appgw_identity_id" {
   type        = string
   default     = ""
 }
+
+variable "function_app_name" {
+  description = "The name of the function app"
+  type        = string
+}
