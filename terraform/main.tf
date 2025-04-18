@@ -69,14 +69,18 @@ locals {
   }
 }
 
-# Create resource group
+#################################################
+# Resource Group
+#################################################
 resource "azurerm_resource_group" "rg" {
   name     = local.names.resource_group
   location = var.location
   tags     = local.common_tags
 }
 
-# Call the Key Vault module
+#################################################
+# Key Vault
+#################################################
 module "key_vault" {
   source = "./modules/key-vault"
 
@@ -92,7 +96,9 @@ module "key_vault" {
   tags = local.common_tags
 }
 
-# Call the Cosmos DB module
+#################################################
+# Cosmos DB
+#################################################
 module "cosmos_db" {
   source = "./modules/cosmos-db"
   
@@ -158,7 +164,9 @@ resource "azurerm_key_vault_secret" "cosmos_container" {
   ]
 }
 
-# Call the Function App module (with system-assigned identity)
+#################################################
+# Function App
+#################################################
 module "function_app" {
   source = "./modules/function-app"
   
@@ -183,7 +191,7 @@ module "function_app" {
   ]
 }
 
-# Add Function App's identity to Key Vault access policies (updated for system-assigned identity)
+# Add Function App's identity to Key Vault access policies
 resource "azurerm_key_vault_access_policy" "function_access_policy" {
   key_vault_id = module.key_vault.key_vault_id
   tenant_id    = var.tenant_id
@@ -234,7 +242,7 @@ resource "azurerm_key_vault_secret" "blob_container_name" {
   ]
 }
 
-# Add role assignment for Cosmos DB data access (updated for system-assigned identity)
+# Add role assignment for Cosmos DB data access
 resource "azurerm_cosmosdb_sql_role_assignment" "function_cosmos_data_contributor" {
   resource_group_name = azurerm_resource_group.rg.name
   account_name        = module.cosmos_db.cosmos_db_name
@@ -248,7 +256,9 @@ resource "azurerm_cosmosdb_sql_role_assignment" "function_cosmos_data_contributo
   ]
 }
 
-# Log Analytics workspace for Function App logs only
+#################################################
+# Log Analytics
+#################################################
 resource "azurerm_log_analytics_workspace" "logs" {
   name                = local.names.logs_workspace
   location            = var.location
@@ -259,7 +269,7 @@ resource "azurerm_log_analytics_workspace" "logs" {
   tags = local.common_tags
 }
 
-# Diagnostic settings just for Function App
+# Diagnostic settings for Function App
 resource "azurerm_monitor_diagnostic_setting" "function_logs" {
   name                       = "function-diagnostic-logs"
   target_resource_id         = module.function_app.function_app_id
@@ -275,29 +285,9 @@ resource "azurerm_monitor_diagnostic_setting" "function_logs" {
   }
 }
 
-# Call the networking module
-module "networking" {
-  source = "./modules/networking"
-  
-  resource_group_name         = azurerm_resource_group.rg.name
-  location                    = var.location
-  function_app_hostname       = module.function_app.function_app_hostname
-  function_app_id             = module.function_app.function_app_id
-  function_app_name           = local.names.function_app
-  log_analytics_workspace_id  = azurerm_log_analytics_workspace.logs.id
-  
-  # WAF Mode - Start with Detection, then move to Prevention after testing
-  waf_mode                    = "Detection"
-  
-  tags = local.common_tags
-  
-  depends_on = [
-    module.function_app,
-    azurerm_log_analytics_workspace.logs
-  ]
-}
-
-# Create an admin API key secret in Key Vault
+#################################################
+# Admin API Key
+#################################################
 resource "azurerm_key_vault_secret" "admin_api_key" {
   name         = "admin-api-key"
   value        = uuid() # Generate a unique API key
@@ -308,7 +298,9 @@ resource "azurerm_key_vault_secret" "admin_api_key" {
   ]
 }
 
-# Generate a self-signed certificate for App Gateway
+#################################################
+# SSL Certificate for Application Gateway
+#################################################
 resource "azurerm_key_vault_certificate" "appgw_cert" {
   name         = "appgw-ssl-cert"
   key_vault_id = module.key_vault.key_vault_id
@@ -376,44 +368,9 @@ resource "local_file" "ssl_cert" {
   ]
 }
 
-# Call the networking module
-module "networking" {
-  source = "./modules/networking"
-  
-  resource_group_name        = azurerm_resource_group.rg.name
-  location                   = var.location
-  function_app_hostname      = module.function_app.function_app_hostname
-  function_app_id            = module.function_app.function_app_id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
-  
-  # WAF Mode - Start with Detection, then move to Prevention after testing
-  waf_mode                   = "Detection"
-  
-  # SSL certificate details
-  ssl_cert_path              = local_file.ssl_cert.filename
-  ssl_cert_password          = ""  # Self-signed certs don't have a password
-  
-  tags = local.common_tags
-  
-  depends_on = [
-    module.function_app,
-    azurerm_log_analytics_workspace.logs,
-    local_file.ssl_cert
-  ]
-}
-
-# Create an admin API key secret in Key Vault if it doesn't exist already
-resource "azurerm_key_vault_secret" "admin_api_key" {
-  name         = "admin-api-key"
-  value        = uuid() # Generate a unique API key
-  key_vault_id = module.key_vault.key_vault_id
-  
-  depends_on = [
-    module.key_vault
-  ]
-}
-
-# Create a managed identity for Application Gateway
+#################################################
+# Application Gateway Identity
+#################################################
 resource "azurerm_user_assigned_identity" "appgw" {
   name                = "id-appgw-${var.project_name}"
   resource_group_name = azurerm_resource_group.rg.name
@@ -444,7 +401,9 @@ resource "azurerm_key_vault_access_policy" "appgw_access_policy" {
   ]
 }
 
-# Update the networking module call to include the identity ID
+#################################################
+# Networking with Application Gateway
+#################################################
 module "networking" {
   source = "./modules/networking"
   
@@ -452,6 +411,7 @@ module "networking" {
   location                   = var.location
   function_app_hostname      = module.function_app.function_app_hostname
   function_app_id            = module.function_app.function_app_id
+  function_app_name          = local.names.function_app
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
   
   # WAF Mode - Start with Detection, then move to Prevention after testing
