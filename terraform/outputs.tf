@@ -1,6 +1,4 @@
-################################################################
-# Root-level outputs for the restaurant API project
-################################################################
+# outputs.tf - Outputs for the restaurant API project
 
 # Function App outputs
 output "function_app_url" {

@@ -1,101 +1,77 @@
-# variables.tf - Root module variables
+# variables.tf - Variables for the restaurant API project
 
 variable "subscription_id" {
-  description = "The Azure Subscription ID to deploy to"
+  description = "The Azure subscription ID"
   type        = string
 }
 
 variable "tenant_id" {
-  description = "The Azure Tenant ID"
+  description = "The Azure tenant ID"
   type        = string
 }
 
 variable "project_name" {
-  description = "Project name used as prefix for resources"
+  description = "The name of the project, used as a prefix for resources"
   type        = string
-  default     = "veronis-test"
+  default     = "restaurant-api"
 }
 
 variable "environment" {
-  description = "Environment (dev, test, prod)"
+  description = "The environment (dev, test, prod)"
   type        = string
   default     = "dev"
 }
 
 variable "location" {
-  description = "Azure region to deploy resources"
+  description = "The Azure location where resources should be created"
   type        = string
   default     = "North Europe"
 }
 
-variable "tags" {
-  description = "Tags to apply to all resources"
-  type        = map(string)
-  default     = {}
-}
-
-variable "allowed_ip_ranges" {
-  description = "List of IP addresses/ranges allowed to access resources"
-  type        = list(string)
-  default     = ["0.0.0.0/0"]  # Open by default - restrict this in production!
-}
-
 variable "cosmos_db_name" {
-  description = "Name of the Cosmos DB database"
+  description = "The name of the Cosmos DB database"
   type        = string
-  default     = "restaurant-db"
+  default     = "RestaurantDatabase"
 }
 
 variable "cosmos_container_name" {
-  description = "Name of the Cosmos DB container"
+  description = "The name of the Cosmos DB container"
   type        = string
-  default     = "restaurants"
+  default     = "Restaurants"
 }
 
 variable "key_vault_network_default_action" {
-  description = "Default action for Key Vault network rules (Allow or Deny)"
+  description = "Default action for Key Vault network ACLs"
   type        = string
-  default     = "Deny"
+  default     = "Allow"
 }
 
 variable "key_vault_network_bypass" {
-  description = "Bypass settings for Key Vault network rules"
+  description = "Network bypass for Key Vault"
   type        = string
   default     = "AzureServices"
 }
 
+variable "allowed_ip_ranges" {
+  description = "List of IP ranges to allow access to Key Vault"
+  type        = list(string)
+  default     = []
+}
+
 variable "log_analytics_sku" {
-  description = "SKU for Log Analytics workspace"
+  description = "The SKU of the Log Analytics workspace"
   type        = string
   default     = "PerGB2018"
 }
 
 variable "log_retention_days" {
-  description = "Number of days to retain logs"
+  description = "The number of days to retain logs"
   type        = number
   default     = 30
 }
 
-variable "client_id" {
-  description = "Azure Service Principal Client ID"
-  type        = string
-}
-
-variable "client_secret" {
-  description = "Azure Service Principal Client Secret"
-  type        = string
-  sensitive   = true
-}
-
-
-variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
-  default     = "veronis-api-rg"
-}
-
-variable "function_app_name" {
-  description = "Name of the Azure Function App"
-  type        = string
-  default     = "veronis-api-func"
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
 }

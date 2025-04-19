@@ -1,7 +1,5 @@
-################################################################
 # Networking Module for Restaurant API
 # Configures Azure Application Gateway with WAF and function app backend
-################################################################
 
 # Public IP for Application Gateway
 resource "azurerm_public_ip" "appgw" {
@@ -92,17 +90,17 @@ resource "azurerm_application_gateway" "main" {
   resource_group_name = var.resource_group_name
   location            = var.location
   
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.appgw_identity_id]
+  }
+  
   sku {
     name     = "WAF_v2"
     tier     = "WAF_v2"
     capacity = 2
   }
   
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [var.appgw_identity_id]
-  }
-
   gateway_ip_configuration {
     name      = "gateway-ip-config"
     subnet_id = azurerm_subnet.appgw.id
@@ -309,10 +307,11 @@ resource "azurerm_application_gateway" "main" {
     }
   }
   
+  # SSL certificate for HTTPS
   ssl_certificate {
-  name                = "appgw-ssl-cert"
-  key_vault_secret_id = var.key_vault_secret_id
-}
+    name                = "appgw-ssl-cert"
+    key_vault_secret_id = var.key_vault_secret_id
+  }
   
   # WAF configuration
   waf_configuration {

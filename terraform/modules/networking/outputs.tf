@@ -1,6 +1,4 @@
-################################################################
-# Networking Module Outputs for Application Gateway
-################################################################
+# Outputs for the networking module
 
 output "app_gateway_id" {
   description = "The ID of the Application Gateway"
