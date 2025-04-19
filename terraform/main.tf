@@ -390,6 +390,7 @@ module "networking" {
   resource_group_name        = azurerm_resource_group.rg.name
   location                   = var.location
   function_app_hostname      = module.function_app.function_app_hostname
+  function_app_name          = local.names.function_app
   function_app_id            = module.function_app.function_app_id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
   
