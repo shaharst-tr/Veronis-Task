@@ -25,7 +25,7 @@ variable "environment" {
 variable "location" {
   description = "The Azure location where resources should be created"
   type        = string
-  default     = "North Europe"
+  default     = "northeurope"
 }
 
 variable "cosmos_db_name" {
