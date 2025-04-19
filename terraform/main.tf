@@ -34,9 +34,9 @@ locals {
   # Resource-specific names
   names = {
     resource_group  = "${local.name_prefix}-rg"
-    key_vault       = "${local.name_prefix}-kv-24"
+    key_vault       = "${local.name_prefix}-kv"
     cosmos_account  = "${local.name_prefix}-cosmos"
-    function_app    = "${local.name_prefix}-func-24"
+    function_app    = "${local.name_prefix}-func"
     storage_account = lower(replace("${var.project_name}${var.environment}sa", "-", ""))
     app_insights    = "${local.name_prefix}-insights"
     app_plan        = "${local.name_prefix}-plan"
@@ -301,10 +301,9 @@ resource "azurerm_key_vault_secret" "admin_api_key" {
 #################################################
 # SSL Certificate for Application Gateway
 #################################################
-# Create a self-signed certificate in your existing Key Vault
 resource "azurerm_key_vault_certificate" "appgw_cert" {
   name         = "appgw-ssl-cert"
-  key_vault_id = module.key_vault.key_vault_id  # Reference your existing Key Vault
+  key_vault_id = module.key_vault.key_vault_id
 
   certificate_policy {
     issuer_parameters {
@@ -333,6 +332,7 @@ resource "azurerm_key_vault_certificate" "appgw_cert" {
     }
 
     x509_certificate_properties {
+      # Generate a certificate valid for 1 year
       key_usage = [
         "cRLSign",
         "dataEncipherment",
@@ -342,10 +342,20 @@ resource "azurerm_key_vault_certificate" "appgw_cert" {
         "keyEncipherment",
       ]
 
-      subject            = "CN=example.com"
+      subject            = "CN=${local.names.function_app}.azurewebsites.net"
       validity_in_months = 12
+
+      subject_alternative_names {
+        dns_names = [
+          "${local.names.function_app}.azurewebsites.net",
+        ]
+      }
     }
   }
+
+  depends_on = [
+    module.key_vault
+  ]
 }
 
 #################################################
@@ -390,11 +400,11 @@ module "networking" {
   resource_group_name        = azurerm_resource_group.rg.name
   location                   = var.location
   function_app_hostname      = module.function_app.function_app_hostname
-  function_app_name          = local.names.function_app
   function_app_id            = module.function_app.function_app_id
+  function_app_name          = local.names.function_app
   log_analytics_workspace_id = azurerm_log_analytics_workspace.logs.id
   
-  # WAF Mode
+  # WAF Mode - Start with Detection, then move to Prevention after testing
   waf_mode                   = "Detection"
   
   # Key Vault certificate reference
