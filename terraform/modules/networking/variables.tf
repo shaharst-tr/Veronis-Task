@@ -61,12 +61,12 @@ variable "ssl_cert_path" {
   default     = "cert.pfx"
 }
 
-variable "ssl_cert_password" {
-  description = "Password for the SSL certificate"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
+# variable "ssl_cert_password" {
+#   description = "Password for the SSL certificate"
+#   type        = string
+#   default     = ""
+#   sensitive   = true
+# }
 
 variable "appgw_identity_id" {
   description = "The ID of the user-assigned managed identity for Application Gateway"
@@ -84,8 +84,13 @@ variable "function_app_name" {
   type        = string
 }
 
-variable "ssl_cert_data" {
-  description = "Base64-encoded SSL certificate data"
+# variable "ssl_cert_data" {
+#   description = "Base64-encoded SSL certificate data"
+#   type        = string
+#   sensitive   = true
+# }
+
+variable "key_vault_secret_id" {
+  description = "The Secret ID of the certificate in Key Vault"
   type        = string
-  sensitive   = true
 }

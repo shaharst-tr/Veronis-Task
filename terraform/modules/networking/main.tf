@@ -309,12 +309,10 @@ resource "azurerm_application_gateway" "main" {
     }
   }
   
-  # SSL certificate for HTTPS
   ssl_certificate {
-    name                = "appgw-ssl-cert"
-    data                = var.ssl_cert_data
-    password            = var.ssl_cert_password
-  }
+  name                = "appgw-ssl-cert"
+  key_vault_secret_id = var.key_vault_secret_id
+}
   
   # WAF configuration
   waf_configuration {

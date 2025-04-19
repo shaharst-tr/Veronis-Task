@@ -63,3 +63,17 @@ resource "azurerm_key_vault_access_policy" "additional" {
   key_permissions    = each.value.key_permissions
   certificate_permissions = each.value.certificate_permissions
 }
+
+resource "azurerm_key_vault_access_policy" "appgw_access_policy" {
+  key_vault_id = module.key_vault.key_vault_id
+  tenant_id    = var.tenant_id
+  object_id    = azurerm_user_assigned_identity.appgw.principal_id
+  
+  secret_permissions = [
+    "Get"
+  ]
+  
+  certificate_permissions = [
+    "Get"
+  ]
+}
