@@ -194,44 +194,23 @@ resource "azurerm_application_gateway" "main" {
     }
   }
   
-  # HTTP to HTTPS redirect
+  # HTTP listener (for redirect)
   http_listener {
     name                           = "http-listener"
     frontend_ip_configuration_name = "frontend-ip-config"
     frontend_port_name             = "http-port"
     protocol                       = "Http"
   }
-  
-  # Restaurant recommendation API listener
+
+  # HTTPS listener (single listener for all paths)
   http_listener {
-    name                           = "restaurant-recommend-listener"
+    name                           = "https-listener"
     frontend_ip_configuration_name = "frontend-ip-config"
     frontend_port_name             = "https-port"
     protocol                       = "Https"
     ssl_certificate_name           = "appgw-ssl-cert"
-    host_name                      = "${lower(replace(replace(var.resource_group_name, "-rg", ""), "-", ""))}.${var.location}.cloudapp.azure.com"
-  }
-  
-  # Admin API listener
-  http_listener {
-    name                           = "admin-listener"
-    frontend_ip_configuration_name = "frontend-ip-config"
-    frontend_port_name             = "https-port"
-    protocol                       = "Https"
-    ssl_certificate_name           = "appgw-ssl-cert"
-    host_name                      = "${lower(replace(replace(var.resource_group_name, "-rg", ""), "-", ""))}.${var.location}.cloudapp.azure.com"
   }
 
-  # Health check listener
-  http_listener {
-    name                           = "health-listener"
-    frontend_ip_configuration_name = "frontend-ip-config"
-    frontend_port_name             = "https-port"
-    protocol                       = "Https"
-    ssl_certificate_name           = "appgw-ssl-cert"
-    host_name                      = "${lower(replace(replace(var.resource_group_name, "-rg", ""), "-", ""))}.${var.location}.cloudapp.azure.com"
-  }
-  
   # HTTP to HTTPS redirect rule
   request_routing_rule {
     name                       = "http-to-https-redirect"
@@ -240,44 +219,32 @@ resource "azurerm_application_gateway" "main" {
     redirect_configuration_name = "http-to-https-redirect"
     priority                   = 10
   }
-  
-  # Restaurant recommendation API rule
+
+  # Main routing rule (uses URL path map)
   request_routing_rule {
-    name                       = "restaurant-recommend-rule"
+    name                       = "main-rule"
     rule_type                  = "PathBasedRouting"
-    http_listener_name         = "restaurant-recommend-listener"
-    backend_address_pool_name  = "restaurant-recommend-pool"
-    backend_http_settings_name = "restaurant-recommend-settings"
-    url_path_map_name          = "restaurant-path-map"
+    http_listener_name         = "https-listener"
+    url_path_map_name          = "api-path-map"
     priority                   = 20
-  }
-  
-  # Admin API rule
-  request_routing_rule {
-    name                       = "admin-rule"
-    rule_type                  = "PathBasedRouting"
-    http_listener_name         = "admin-listener"
-    backend_address_pool_name  = "admin-pool"
-    backend_http_settings_name = "admin-settings"
-    url_path_map_name          = "admin-path-map"
-    priority                   = 30
   }
 
   # HTTP to HTTPS redirect configuration
   redirect_configuration {
     name                 = "http-to-https-redirect"
     redirect_type        = "Permanent"
-    target_listener_name = "restaurant-recommend-listener"
+    target_listener_name = "https-listener"
     include_path         = true
     include_query_string = true
   }
-  
-  # URL path map for restaurant recommendation API
+
+  # URL path map for all API paths
   url_path_map {
-    name                               = "restaurant-path-map"
+    name                               = "api-path-map"
     default_backend_address_pool_name  = "restaurant-recommend-pool"
     default_backend_http_settings_name = "restaurant-recommend-settings"
     
+    # Restaurant recommendations path
     path_rule {
       name                       = "restaurant-recommend-path"
       paths                      = ["/api/restaurant-recommend*"]
@@ -285,25 +252,20 @@ resource "azurerm_application_gateway" "main" {
       backend_http_settings_name = "restaurant-recommend-settings"
     }
     
-    path_rule {
-      name                       = "health-path"
-      paths                      = ["/api/health"]
-      backend_address_pool_name  = "health-pool"
-      backend_http_settings_name = "health-settings"
-    }
-  }
-  
-  # URL path map for admin API
-  url_path_map {
-    name                               = "admin-path-map"
-    default_backend_address_pool_name  = "admin-pool"
-    default_backend_http_settings_name = "admin-settings"
-    
+    # Admin API path
     path_rule {
       name                       = "admin-path"
       paths                      = ["/api/restaurants/admin*"]
       backend_address_pool_name  = "admin-pool"
       backend_http_settings_name = "admin-settings"
+    }
+    
+    # Health check path
+    path_rule {
+      name                       = "health-path"
+      paths                      = ["/api/health"]
+      backend_address_pool_name  = "health-pool"
+      backend_http_settings_name = "health-settings"
     }
   }
   
